@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Barista Login - The Brew-Time{% endblock %}
+{% block content %}
+<h1>🔐 Barista Access</h1>
+<div class="col-md-4">
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    <form method="POST">
+        <div class="mb-3">
+            <label for="code" class="form-label">Access Code</label>
+            <input type="password" id="code" name="code" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-dark">Enter Dashboard</button>
+    </form>
+</div>
+{% endblock %}

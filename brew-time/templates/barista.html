@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Barista Dashboard - The Brew-Time{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>📋 Active Orders</h1>
+    <a href="/barista/logout" class="btn btn-outline-danger">Logout</a>
+</div>
+<div id="orders-table">
+    <p class="text-muted">Loading orders...</p>
+</div>
+
+<script>
+    function fetchOrders() {
+        fetch('/orders')
+            .then(res => res.json())
+            .then(orders => {
+                if (orders.length === 0) {
+                    document.getElementById('orders-table').innerHTML = '<div class="alert alert-info">No active orders. 😌</div>';
+                    return;
+                }
+                let html = '<table class="table table-striped"><thead><tr><th>Order ID</th><th>Items</th><th>Total</th><th>Time</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+                orders.forEach(order => {
+                    let itemsStr = order.items.map(i => `${i.name} x${i.qty}`).join(', ');
+                    let nextActions = {
+                        'Pending': 'Preparing',
+                        'Preparing': 'Ready',
+                        'Ready': 'Completed'
+                    };
+                    let actionButton = '';
+                    if (order.status !== 'Completed') {
+                        actionButton = `<button class="btn btn-sm btn-primary advance-btn" data-id="${order.id}" data-new-status="${nextActions[order.status]}">
+                            Mark as ${nextActions[order.status]}
+                        </button>`;
+                    }
+                    html += `<tr>
+                        <td>#${order.id}</td>
+                        <td>${itemsStr}</td>
+                        <td>${order.total.toFixed(2)} EGP</td>
+                        <td>${order.created_at}</td>
+                        <td><span class="badge bg-${order.status === 'Ready' ? 'success' : order.status === 'Preparing' ? 'warning' : 'secondary'}">${order.status}</span></td>
+                        <td>${actionButton}</td>
+                    </tr>`;
+                });
+                html += '</tbody></table>';
+                document.getElementById('orders-table').innerHTML = html;
+
+                // Attach event listeners to advance buttons
+                document.querySelectorAll('.advance-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const orderId = this.dataset.id;
+                        const newStatus = this.dataset.newStatus;
+                        fetch('/update_status/' + orderId, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: newStatus })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                fetchOrders(); // refresh
+                            } else {
+                                alert('Error: ' + data.error);
+                            }
+                        });
+                    });
+                });
+            });
+    }
+
+    // Poll every 2 seconds
+    setInterval(fetchOrders, 2000);
+    fetchOrders();  // initial fetch
+</script>
+{% endblock %}
